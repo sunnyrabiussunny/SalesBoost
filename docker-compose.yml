@@ -1,0 +1,18 @@
+services:
+  crm:
+    build: .
+    container_name: salesboost
+    restart: unless-stopped
+    ports:
+      - "5757:5757"
+    volumes:
+      - crm_data:/app/data
+    environment:
+      - PORT=5757
+      - NODE_ENV=production
+      - DATA_DIR=/app/data
+      - JWT_SECRET=${JWT_SECRET:-change-this-secret-to-something-random-and-long}
+
+volumes:
+  crm_data:
+    name: salesboost_data
