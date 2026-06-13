@@ -10,6 +10,7 @@ import OrganizationsPage from './pages/OrganizationsPage'
 import ActivitiesPage from './pages/ActivitiesPage'
 import ReportsPage from './pages/ReportsPage'
 import ProductsPage from './pages/ProductsPage'
+import SettingsPage from './pages/SettingsPage'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="activities" element={<ActivitiesPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="products" element={<ProductsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

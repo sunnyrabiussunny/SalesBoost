@@ -92,7 +92,7 @@ router.delete('/products/:id', auth, (req, res) => {
 
 // USERS list (for owner assignment)
 router.get('/users', auth, (req, res) => {
-  res.json(q('SELECT id,name,email,role FROM users ORDER BY name'));
+  res.json(q('SELECT id,name,email,role,created_at FROM users ORDER BY created_at'));
 });
 
 module.exports = router;
