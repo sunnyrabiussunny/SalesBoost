@@ -33,9 +33,18 @@ export default function DealModal({ deal, defaultStage, pipelines, onSave, onClo
     const pipeline = pipelines?.find(p => p.id === form.pipeline_id)
     setStages(pipeline?.stages || [])
     if (!deal && pipeline?.stages?.length) {
-      setForm(f => ({ ...f, stage_id: defaultStage?.id || pipeline.stages[0].id }))
+      const targetStageId = defaultStage?.id || pipeline.stages[0].id
+      const targetStage = pipeline.stages.find(s => s.id === targetStageId)
+      setForm(f => ({ ...f, stage_id: targetStageId, probability: targetStage?.probability ?? f.probability }))
     }
   }, [form.pipeline_id, pipelines])
+
+  // When creating a new deal, default probability to the selected stage's default
+  useEffect(() => {
+    if (deal) return
+    const stage = stages.find(s => s.id === form.stage_id)
+    if (stage) setForm(f => ({ ...f, probability: stage.probability }))
+  }, [form.stage_id])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -92,7 +101,7 @@ export default function DealModal({ deal, defaultStage, pipelines, onSave, onClo
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">Contact</label>
+                <label className="form-label">Customer</label>
                 <select className="form-control" value={form.contact_id} onChange={e=>set('contact_id',e.target.value)}>
                   <option value="">— None —</option>
                   {contacts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}

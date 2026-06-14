@@ -63,7 +63,7 @@ export default function DealDetailPage() {
             {/* Summary */}
             <div className="card mb-4">
               <div className="card-body">
-                <div className="stats-grid" style={{gridTemplateColumns:'repeat(4,1fr)',marginBottom:0}}>
+                <div className="deal-summary-grid">
                   <div>
                     <div className="stat-label">Deal Value</div>
                     <div className="stat-value" style={{fontSize:22}}>{fmt(deal.value)}</div>
@@ -136,9 +136,9 @@ export default function DealDetailPage() {
 
           {/* Sidebar */}
           <div className="deal-detail-sidebar">
-            {/* Contact */}
+            {/* Customer */}
             <div className="card">
-              <div className="card-header"><span style={{fontWeight:600,fontSize:13}}>Contact</span></div>
+              <div className="card-header"><span style={{fontWeight:600,fontSize:13}}>Customer</span></div>
               <div className="card-body" style={{padding:'12px 16px'}}>
                 {deal.contact_name ? (
                   <>
@@ -146,7 +146,7 @@ export default function DealDetailPage() {
                     {deal.contact_email && <div style={{fontSize:12,color:'#6b7280'}}><Mail size={11} style={{marginRight:4,verticalAlign:'middle'}}/>{deal.contact_email}</div>}
                     {deal.contact_phone && <div style={{fontSize:12,color:'#6b7280',marginTop:2}}><Phone size={11} style={{marginRight:4,verticalAlign:'middle'}}/>{deal.contact_phone}</div>}
                   </>
-                ) : <span style={{color:'#9ca3af',fontSize:13}}>No contact linked</span>}
+                ) : <span style={{color:'#9ca3af',fontSize:13}}>No customer linked</span>}
               </div>
             </div>
 

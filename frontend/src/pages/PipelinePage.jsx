@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Plus, AlertTriangle, ChevronDown, Settings, RefreshCw } from 'lucide-react'
+import { Plus, AlertTriangle, RefreshCw, Pencil } from 'lucide-react'
 import api from '../api'
 import DealModal from '../components/DealModal'
+import StageModal from '../components/StageModal'
 
 function fmt(v) {
   if (!v && v !== 0) return '—'
@@ -39,16 +40,21 @@ function DealCard({ deal, onClick }) {
   )
 }
 
-function StageColumn({ stage, deals, onDealClick, onAddDeal }) {
+function StageColumn({ stage, deals, onDealClick, onAddDeal, onEditStage, tourTarget }) {
   const total = deals.reduce((s,d) => s + (d.value||0), 0)
   return (
     <div className="pipeline-column">
       <div className="pipeline-col-header">
         <div>
           <div className="pipeline-col-name">{stage.name}</div>
-          <div className="pipeline-col-stats">{fmt(total)}</div>
+          <div className="pipeline-col-stats">{fmt(total)} · {stage.probability}% prob.</div>
         </div>
-        <span className="pipeline-col-count">{deals.length}</span>
+        <div style={{display:'flex',alignItems:'center',gap:6}}>
+          <span className="pipeline-col-count">{deals.length}</span>
+          <button className="btn-icon pipeline-col-edit-btn" title="Edit stage" onClick={()=>onEditStage(stage)} {...(tourTarget ? {'data-tour':tourTarget} : {})}>
+            <Pencil size={13}/>
+          </button>
+        </div>
       </div>
       <SortableContext items={deals.map(d=>d.id)} strategy={verticalListSortingStrategy}>
         <div className="pipeline-col-body" id={`stage-${stage.id}`}>
@@ -75,15 +81,21 @@ export default function PipelinePage() {
   const [editingDeal, setEditingDeal] = useState(null)
   const [defaultStage, setDefaultStage] = useState(null)
   const [activeId, setActiveId] = useState(null)
+  const [stageModal, setStageModal] = useState(null) // { stage: null|stage } or null = closed
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
-  useEffect(() => {
+  const loadPipelines = (selectId) => {
     api.get('/pipelines').then(r => {
       setPipelines(r.data)
-      if (r.data.length) setSelectedPipeline(r.data[0])
+      if (r.data.length) {
+        const target = selectId ? r.data.find(p=>p.id===selectId) : r.data.find(p=>p.id===selectedPipeline?.id)
+        setSelectedPipeline(target || r.data[0])
+      }
     })
-  }, [])
+  }
+
+  useEffect(() => { loadPipelines() }, [])
 
   useEffect(() => {
     if (!selectedPipeline) return
@@ -92,7 +104,7 @@ export default function PipelinePage() {
       setDeals(r.data)
       setLoading(false)
     })
-  }, [selectedPipeline])
+  }, [selectedPipeline?.id])
 
   const reload = () => {
     if (!selectedPipeline) return
@@ -111,7 +123,6 @@ export default function PipelinePage() {
     const deal = deals.find(d => d.id === active.id)
     if (!deal) return
 
-    // Find target stage
     let targetStageId = null
     for (const stage of stagesForPipeline) {
       const stageDeals = getDealsForStage(stage.id)
@@ -136,6 +147,9 @@ export default function PipelinePage() {
 
   const handleDealSaved = () => { setShowDealModal(false); reload() }
 
+  const handleStageSaved = () => { setStageModal(null); loadPipelines(selectedPipeline.id) }
+  const handleStageDeleted = () => { setStageModal(null); loadPipelines(selectedPipeline.id); reload() }
+
   const activeDeal = deals.find(d => d.id === activeId)
 
   return (
@@ -154,7 +168,7 @@ export default function PipelinePage() {
         <div style={{flex:1}}/>
         <div className="topbar-actions">
           <button className="btn btn-ghost btn-sm" onClick={reload}><RefreshCw size={14}/></button>
-          <button className="btn btn-primary btn-sm" onClick={() => { setEditingDeal(null); setDefaultStage(stagesForPipeline[0]); setShowDealModal(true) }}>
+          <button className="btn btn-primary btn-sm" data-tour="add-deal-btn" onClick={() => { setEditingDeal(null); setDefaultStage(stagesForPipeline[0]); setShowDealModal(true) }}>
             <Plus size={14}/> Add Deal
           </button>
         </div>
@@ -166,14 +180,16 @@ export default function PipelinePage() {
           <div className="empty-state"><p>Loading pipeline…</p></div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="pipeline-board">
-              {stagesForPipeline.map(stage => (
+            <div className="pipeline-board" data-tour="pipeline-board">
+              {stagesForPipeline.map((stage, i) => (
                 <StageColumn key={stage.id} stage={stage}
                   deals={getDealsForStage(stage.id)}
                   onDealClick={handleDealClick}
-                  onAddDeal={handleAddDeal}/>
+                  onAddDeal={handleAddDeal}
+                  onEditStage={(s)=>setStageModal({stage:s})}
+                  tourTarget={i === 0 ? 'edit-stage-btn' : null}/>
               ))}
-              <button className="pipeline-add-col" onClick={() => {}}>
+              <button className="pipeline-add-col" onClick={() => setStageModal({stage:null})}>
                 <Plus size={16}/> Add Stage
               </button>
             </div>
@@ -196,6 +212,15 @@ export default function PipelinePage() {
           pipelines={pipelines}
           onSave={handleDealSaved}
           onClose={() => setShowDealModal(false)}/>
+      )}
+
+      {stageModal && (
+        <StageModal
+          pipelineId={selectedPipeline.id}
+          stage={stageModal.stage}
+          onSave={handleStageSaved}
+          onDelete={handleStageDeleted}
+          onClose={() => setStageModal(null)}/>
       )}
     </div>
   )

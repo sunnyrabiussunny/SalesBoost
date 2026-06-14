@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './AuthContext'
+import { TourProvider } from './TourContext'
 import Layout from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import PipelinePage from './pages/PipelinePage'
@@ -21,23 +22,25 @@ function PrivateRoute({ children }) {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-            <Route index element={<Navigate to="/pipeline" replace />} />
-            <Route path="pipeline" element={<PipelinePage />} />
-            <Route path="deals" element={<DealsListPage />} />
-            <Route path="deals/:id" element={<DealDetailPage />} />
-            <Route path="contacts" element={<ContactsPage />} />
-            <Route path="organizations" element={<OrganizationsPage />} />
-            <Route path="activities" element={<ActivitiesPage />} />
-            <Route path="reports" element={<ReportsPage />} />
-            <Route path="products" element={<ProductsPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <TourProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+              <Route index element={<Navigate to="/pipeline" replace />} />
+              <Route path="pipeline" element={<PipelinePage />} />
+              <Route path="deals" element={<DealsListPage />} />
+              <Route path="deals/:id" element={<DealDetailPage />} />
+              <Route path="contacts" element={<ContactsPage />} />
+              <Route path="organizations" element={<OrganizationsPage />} />
+              <Route path="activities" element={<ActivitiesPage />} />
+              <Route path="reports" element={<ReportsPage />} />
+              <Route path="products" element={<ProductsPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </TourProvider>
     </AuthProvider>
   )
 }

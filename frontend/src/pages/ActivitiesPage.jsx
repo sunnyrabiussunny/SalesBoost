@@ -47,7 +47,7 @@ export default function ActivitiesPage() {
               <button key={f} className={`tab ${filter===f?'active':''}`} onClick={()=>setFilter(f)} style={{textTransform:'capitalize',padding:'8px 12px'}}>{f}</button>
             ))}
           </div>
-          <button className="btn btn-primary btn-sm" onClick={()=>setShowModal(true)}><Plus size={14}/> Schedule Activity</button>
+          <button className="btn btn-primary btn-sm" data-tour="schedule-activity-btn" onClick={()=>setShowModal(true)}><Plus size={14}/> Schedule Activity</button>
         </div>
       </div>
       <div className="page-content">
