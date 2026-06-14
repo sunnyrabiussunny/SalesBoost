@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Plus, AlertTriangle, RefreshCw, Pencil } from 'lucide-react'
@@ -42,6 +42,7 @@ function DealCard({ deal, onClick }) {
 
 function StageColumn({ stage, deals, onDealClick, onAddDeal, onEditStage, tourTarget }) {
   const total = deals.reduce((s,d) => s + (d.value||0), 0)
+  const { setNodeRef, isOver } = useDroppable({ id: stage.id })
   return (
     <div className="pipeline-column">
       <div className="pipeline-col-header">
@@ -57,8 +58,13 @@ function StageColumn({ stage, deals, onDealClick, onAddDeal, onEditStage, tourTa
         </div>
       </div>
       <SortableContext items={deals.map(d=>d.id)} strategy={verticalListSortingStrategy}>
-        <div className="pipeline-col-body" id={`stage-${stage.id}`}>
+        <div ref={setNodeRef} className={`pipeline-col-body ${isOver ? 'drag-over' : ''}`}>
           {deals.map(d => <DealCard key={d.id} deal={d} onClick={onDealClick}/>)}
+          {deals.length === 0 && (
+            <div style={{minHeight:60,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-muted)',fontSize:12,border:'2px dashed var(--border)',borderRadius:6}}>
+              Drop here
+            </div>
+          )}
         </div>
       </SortableContext>
       <div style={{padding:'8px'}}>
@@ -124,12 +130,13 @@ export default function PipelinePage() {
     if (!deal) return
 
     let targetStageId = null
-    for (const stage of stagesForPipeline) {
-      const stageDeals = getDealsForStage(stage.id)
-      if (stageDeals.find(d => d.id === over.id) || over.id === `stage-${stage.id}`) {
-        targetStageId = stage.id
-        break
-      }
+    // 1) Dropped directly on a stage's column body (covers empty stages)
+    if (stagesForPipeline.find(s => s.id === over.id)) {
+      targetStageId = over.id
+    } else {
+      // 2) Dropped on/near another deal card -> use that deal's stage
+      const overDeal = deals.find(d => d.id === over.id)
+      if (overDeal) targetStageId = overDeal.stage_id
     }
     if (!targetStageId) return
     if (deal.stage_id === targetStageId) return
