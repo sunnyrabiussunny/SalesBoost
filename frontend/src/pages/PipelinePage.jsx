@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { DndContext, DragOverlay, pointerWithin, rectIntersection, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
-import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Plus, AlertTriangle, RefreshCw, Pencil } from 'lucide-react'
 import api from '../api'
@@ -13,14 +13,6 @@ function fmt(v) {
   if (v >= 1000000) return `$${(v/1000000).toFixed(1)}M`
   if (v >= 1000) return `$${(v/1000).toFixed(0)}K`
   return `$${v.toLocaleString()}`
-}
-
-// Pointer-based detection so hovering an empty column resolves to that
-// column's droppable instead of the nearest card in another column.
-function collisionDetection(args) {
-  const pointerCollisions = pointerWithin(args)
-  if (pointerCollisions.length > 0) return pointerCollisions
-  return rectIntersection(args)
 }
 
 function DealCard({ deal, onClick }) {
@@ -126,10 +118,34 @@ export default function PipelinePage() {
   }
 
   const stagesForPipeline = selectedPipeline?.stages || []
+  const stageIdSet = useMemo(() => new Set(stagesForPipeline.map(s => s.id)), [stagesForPipeline])
 
-  const getDealsForStage = stageId => deals.filter(d => d.stage_id === stageId)
+  // Pointer is checked against both a column's own droppable AND any deal
+  // card droppable beneath it. If both match (pointer over a card), prefer
+  // the card so within-stage reordering and precise insert position work.
+  // If only the column matches (empty space / empty column), fall back to
+  // the column itself. If nothing matches (fast drags), fall back to rect overlap.
+  const collisionDetection = (args) => {
+    const pointerCollisions = pointerWithin(args)
+    if (pointerCollisions.length > 0) {
+      const cardCollision = pointerCollisions.find(c => !stageIdSet.has(c.id))
+      return cardCollision ? [cardCollision] : pointerCollisions
+    }
+    return rectIntersection(args)
+  }
+
+  const getDealsForStage = stageId => deals.filter(d => d.stage_id === stageId).sort((a,b) => a.order_num - b.order_num)
 
   const handleDragStart = ({ active }) => setActiveId(active.id)
+
+  // Persist new order_num values for a set of deals (used after a reorder)
+  const persistOrder = (stageId, orderedDeals) => {
+    orderedDeals.forEach((d, i) => {
+      if (d.order_num !== i) {
+        api.put(`/deals/${d.id}/move`, { stage_id: stageId, order_num: i, pipeline_id: selectedPipeline.id })
+      }
+    })
+  }
 
   const handleDragEnd = ({ active, over }) => {
     setActiveId(null)
@@ -138,22 +154,53 @@ export default function PipelinePage() {
     if (!deal) return
 
     let targetStageId = null
-    // 1) Dropped directly on a stage's column body (covers empty stages)
+    let overDealId = null
+    // 1) Dropped directly on a stage's column body (covers empty stages, or empty space below the last card)
     if (stagesForPipeline.find(s => s.id === over.id)) {
       targetStageId = over.id
     } else {
-      // 2) Dropped on/near another deal card -> use that deal's stage
+      // 2) Dropped on/near another deal card -> use that deal's stage and position
       const overDeal = deals.find(d => d.id === over.id)
-      if (overDeal) targetStageId = overDeal.stage_id
+      if (overDeal) { targetStageId = overDeal.stage_id; overDealId = overDeal.id }
     }
     if (!targetStageId) return
-    if (deal.stage_id === targetStageId) return
 
-    const stageDeals = getDealsForStage(targetStageId)
-    const newOrder = stageDeals.length
+    if (deal.stage_id === targetStageId) {
+      // Reordering within the same stage
+      if (!overDealId || overDealId === deal.id) return
+      const stageDeals = getDealsForStage(targetStageId)
+      const oldIndex = stageDeals.findIndex(d => d.id === deal.id)
+      const newIndex = stageDeals.findIndex(d => d.id === overDealId)
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return
 
-    setDeals(prev => prev.map(d => d.id === deal.id ? { ...d, stage_id: targetStageId, order_num: newOrder } : d))
-    api.put(`/deals/${deal.id}/move`, { stage_id: targetStageId, order_num: newOrder, pipeline_id: selectedPipeline.id })
+      const reordered = arrayMove(stageDeals, oldIndex, newIndex)
+      const orderMap = new Map(reordered.map((d, i) => [d.id, i]))
+
+      setDeals(prev => prev.map(d => orderMap.has(d.id) ? { ...d, order_num: orderMap.get(d.id) } : d))
+      persistOrder(targetStageId, reordered)
+      return
+    }
+
+    // Moving to a different stage: insert at the dropped position (or append if dropped on empty space)
+    const sourceStageDeals = getDealsForStage(deal.stage_id).filter(d => d.id !== deal.id)
+    const targetStageDeals = getDealsForStage(targetStageId)
+    let insertIndex = targetStageDeals.length
+    if (overDealId) {
+      const idx = targetStageDeals.findIndex(d => d.id === overDealId)
+      if (idx !== -1) insertIndex = idx
+    }
+    const newTargetOrder = [...targetStageDeals.slice(0, insertIndex), deal, ...targetStageDeals.slice(insertIndex)]
+    const newTargetOrderMap = new Map(newTargetOrder.map((d, i) => [d.id, i]))
+
+    setDeals(prev => prev.map(d => {
+      if (d.id === deal.id) return { ...d, stage_id: targetStageId, order_num: newTargetOrderMap.get(d.id) }
+      if (newTargetOrderMap.has(d.id)) return { ...d, order_num: newTargetOrderMap.get(d.id) }
+      return d
+    }))
+
+    api.put(`/deals/${deal.id}/move`, { stage_id: targetStageId, order_num: newTargetOrderMap.get(deal.id), pipeline_id: selectedPipeline.id })
+    persistOrder(targetStageId, newTargetOrder.filter(d => d.id !== deal.id))
+    persistOrder(deal.stage_id, sourceStageDeals)
   }
 
   const handleDealClick = deal => navigate(`/deals/${deal.id}`)

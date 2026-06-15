@@ -1,13 +1,16 @@
 # 💼 SalesBoost CRM
 
-Self-hosted, Pipedrive-style sales CRM. Visual drag-and-drop pipelines, deal
-tracking with rotting/stagnation alerts, activities & calendar, contacts &
-organizations, product catalog, and an insights dashboard with charts.
+Self-hosted sales CRM. Visual drag-and-drop pipelines, dealtracking with rotting/stagnation alerts, activities & calendar, contacts & organizations, product catalog, and an insights dashboard with charts.
 
-Runs entirely on your own server. All data is yours, stored locally in
-SQLite. No account, no cloud dependency.
+Runs entirely on your own server. All data is yours, stored locally in SQLite. No account, no cloud dependency.
 
 **Port: 5757**
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="https://iili.io/CnviZwN.png" width="49%" /> <img src="https://iili.io/CnvsHcG.png" width="46%" />
+</p>
 
 ## Features
 
