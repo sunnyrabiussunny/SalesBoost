@@ -63,19 +63,28 @@ export const TOUR_STEPS = [
   },
 ]
 
+const STORAGE_KEY = 'salesboost_tour_completed'
+
 const TourCtx = createContext(null)
 
 export function TourProvider({ children }) {
   const [active, setActive] = useState(false)
   const [step, setStep] = useState(0)
+  const [completed, setCompleted] = useState(() => {
+    try { return localStorage.getItem(STORAGE_KEY) === 'true' } catch { return false }
+  })
 
   const start = () => { setStep(0); setActive(true) }
   const next = () => setStep(s => Math.min(s + 1, TOUR_STEPS.length - 1))
   const prev = () => setStep(s => Math.max(s - 1, 0))
-  const finish = () => { setActive(false); setStep(0) }
+  const finish = () => {
+    setActive(false); setStep(0)
+    setCompleted(true)
+    try { localStorage.setItem(STORAGE_KEY, 'true') } catch {}
+  }
 
   return (
-    <TourCtx.Provider value={{ active, step, start, next, prev, finish, steps: TOUR_STEPS }}>
+    <TourCtx.Provider value={{ active, step, start, next, prev, finish, steps: TOUR_STEPS, completed }}>
       {children}
     </TourCtx.Provider>
   )

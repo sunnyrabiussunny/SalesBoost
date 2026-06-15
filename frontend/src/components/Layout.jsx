@@ -48,13 +48,6 @@ export default function Layout() {
           <h1><span className="sidebar-logo-icon">💼</span><span className="sidebar-logo-text">SalesBoost</span></h1>
         </div>
         <nav className="sidebar-nav">
-          <div className="sidebar-section">Get Started</div>
-          <button onClick={startTour} title="Start Here" style={{
-            display:'flex',alignItems:'center',gap:10,padding:'10px 16px',width:'100%',
-            background:'transparent',border:'none',color:'#fbbf24',fontSize:'13.5px',fontWeight:600,cursor:'pointer'
-          }}>
-            <Compass size={16}/><span className="sidebar-label">Start Here</span>
-          </button>
           {NAV_ITEMS.map(item => {
             const showSection = item.section !== lastSection
             lastSection = item.section
@@ -70,6 +63,17 @@ export default function Layout() {
           })}
           <div className="sidebar-section">Account</div>
           <NavLink to="/settings" title="Settings"><Settings size={16}/><span className="sidebar-label">Settings</span></NavLink>
+          {!tour?.completed && (
+            <>
+              <div className="sidebar-section">Get Started</div>
+              <button onClick={startTour} title="Start Here" style={{
+                display:'flex',alignItems:'center',gap:10,padding:'10px 16px',width:'100%',
+                background:'transparent',border:'none',color:'#fbbf24',fontSize:'13.5px',fontWeight:600,cursor:'pointer'
+              }}>
+                <Compass size={16}/><span className="sidebar-label">Start Here</span>
+              </button>
+            </>
+          )}
         </nav>
         <div className="sidebar-user">
           <div className="sidebar-user-avatar">{user?.name?.[0]?.toUpperCase()}</div>
@@ -86,13 +90,6 @@ export default function Layout() {
       {/* Mobile branding header (sidebar hidden on small screens) */}
       <div className="mobile-topbar-brand">
         <span style={{fontSize:18}}>💼</span> SalesBoost
-        <div style={{flex:1}}/>
-        <button onClick={startTour} style={{
-          display:'flex',alignItems:'center',gap:6,background:'rgba(255,255,255,.1)',
-          border:'none',color:'#fbbf24',fontSize:12,fontWeight:600,padding:'5px 10px',borderRadius:6
-        }}>
-          <Compass size={13}/> Start Here
-        </button>
       </div>
 
       <main className="main">
@@ -127,12 +124,14 @@ export default function Layout() {
                 </NavLink>
               )
             })}
-            <button className="mobile-more-sheet-item" onClick={startTour}>
-              <Compass size={18}/>Start Here (Tour)
-            </button>
             <button className="mobile-more-sheet-item" onClick={handleLogout} style={{color:'var(--danger)'}}>
               <LogOut size={18}/>Logout
             </button>
+            {!tour?.completed && (
+              <button className="mobile-more-sheet-item" onClick={startTour} style={{color:'#d97706'}}>
+                <Compass size={18}/>Start Here (Tour)
+              </button>
+            )}
             <button className="mobile-more-sheet-item" onClick={()=>setShowMore(false)} style={{color:'var(--text-muted)',justifyContent:'center'}}>
               <X size={16}/>Close
             </button>

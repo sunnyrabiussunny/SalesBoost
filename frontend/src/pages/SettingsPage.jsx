@@ -1,7 +1,27 @@
 import { useState, useEffect } from 'react'
-import { Lock, UserPlus, Trash2, Shield, Users as UsersIcon, X } from 'lucide-react'
+import { Lock, UserPlus, Trash2, Shield, Users as UsersIcon, X, Compass } from 'lucide-react'
 import api from '../api'
 import { useAuth } from '../AuthContext'
+import { useTour } from '../TourContext'
+
+function TourCard() {
+  const tour = useTour()
+  return (
+    <div className="card mb-4">
+      <div className="card-header"><span style={{fontWeight:600,fontSize:14}}><Compass size={15} style={{verticalAlign:'middle',marginRight:6}}/>Getting Started</span></div>
+      <div className="card-body">
+        <p className="text-muted text-sm mb-3">
+          {tour?.completed
+            ? "You've completed the guided tour. Replay it anytime to refresh your memory on the pipeline, customers, activities, and reports."
+            : 'Take a quick guided tour of SalesBoost CRM — pipeline, deals, customers, activities, and reports.'}
+        </p>
+        <button className="btn btn-primary" onClick={()=>tour?.start()}>
+          <Compass size={14}/> {tour?.completed ? 'Replay Tour' : 'Start Tour'}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 function ChangePasswordCard() {
   const [form, setForm] = useState({ current_password:'', new_password:'', confirm:'' })
@@ -226,6 +246,7 @@ export default function SettingsPage() {
           </div>
         </div>
         <ChangePasswordCard/>
+        <TourCard/>
         <UserManagementCard/>
       </div>
     </div>
