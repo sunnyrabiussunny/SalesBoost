@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
+import { DndContext, DragOverlay, pointerWithin, rectIntersection, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Plus, AlertTriangle, RefreshCw, Pencil } from 'lucide-react'
@@ -13,6 +13,14 @@ function fmt(v) {
   if (v >= 1000000) return `$${(v/1000000).toFixed(1)}M`
   if (v >= 1000) return `$${(v/1000).toFixed(0)}K`
   return `$${v.toLocaleString()}`
+}
+
+// Pointer-based detection so hovering an empty column resolves to that
+// column's droppable instead of the nearest card in another column.
+function collisionDetection(args) {
+  const pointerCollisions = pointerWithin(args)
+  if (pointerCollisions.length > 0) return pointerCollisions
+  return rectIntersection(args)
 }
 
 function DealCard({ deal, onClick }) {
@@ -186,7 +194,7 @@ export default function PipelinePage() {
         {loading ? (
           <div className="empty-state"><p>Loading pipeline…</p></div>
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="pipeline-board" data-tour="pipeline-board">
               {stagesForPipeline.map((stage, i) => (
                 <StageColumn key={stage.id} stage={stage}
